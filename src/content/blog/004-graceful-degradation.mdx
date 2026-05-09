@@ -1,0 +1,58 @@
+# Why DeployDash works before you configure anything
+
+Most boilerplates greet you with a crash.
+
+You clone the repo, run `pnpm dev`, and immediately get:
+`Error: Missing environment variable CLERK_SECRET_KEY`
+You haven't written a line of code yet and the app is already broken.
+You spend 20 minutes reading docs, creating accounts, generating keys,
+filling in env vars — before you've even seen the thing run.
+
+That's bad DX. DeployDash does it differently.
+
+## The approach — graceful degradation
+
+Public pages work immediately. No env vars needed. You run `pnpm dev`
+and see your marketing page, pricing page, and blog — all working.
+
+Protected features degrade gracefully when not configured:
+- Dashboard → shows a setup card explaining what's missing
+- Sign in → shows a clear message pointing to the missing env var
+- Billing → same pattern
+
+The mental model: **the app is always runnable. Features unlock as you
+configure them.**
+
+## How it works technically
+
+A single `isConfigured` object checks each provider at call time:
+
+```typescript
+export const isConfigured = {
+  auth: (): boolean =>
+    !!process.env.CLERK_SECRET_KEY &&
+    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+}
+```
+
+Functions, not values — evaluated at call time so they work correctly
+in tests where env vars are dynamically stubbed.
+
+## The production difference
+
+In development, a SetupBanner shows exactly which env vars are missing.
+In production, adapters throw a typed AppError with a clear message.
+Public pages never check auth so they always work regardless.
+
+## The DX win
+
+> "Install DeployDash and see your app in 30 seconds.
+> Configure features one at a time as you need them."
+
+That's the pitch. This is how it's delivered.
+
+## What's next
+
+With setup detection in place, the auth adapter can use it to fail
+gracefully in production. Next — building the AuthAdapter interface
+and the Clerk implementation.

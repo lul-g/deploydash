@@ -1,0 +1,48 @@
+# Setup Detection
+
+DeployDash checks whether each provider is configured at runtime using
+`isConfigured`. This enables graceful degradation — public pages work
+immediately, protected features show helpful errors instead of crashing.
+
+## Usage
+
+```typescript
+import { isConfigured, getMissingFeatures, getMissingEnvVars } from "@/lib/setup"
+
+// check a single feature
+if (!isConfigured.auth()) {
+  throw new AppError("INTERNAL_ERROR", "Auth is not configured")
+}
+
+// get all missing features
+const missing = getMissingFeatures()
+// → ["auth", "database", "billing"]
+
+// get exact env var names to add
+const vars = getMissingEnvVars()
+// → ["CLERK_SECRET_KEY", "DATABASE_URL", "STRIPE_SECRET_KEY"]
+```
+
+## How it works
+
+Each check reads directly from `process.env` at call time — not at import
+time. This means checks are always current and work correctly in tests
+where env vars are stubbed dynamically.
+
+## Checks
+
+| Check | Env vars required |
+|---|---|
+| `isConfigured.auth()` | `CLERK_SECRET_KEY` + `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` |
+| `isConfigured.billing()` | `STRIPE_SECRET_KEY` |
+| `isConfigured.email()` | `RESEND_API_KEY` |
+| `isConfigured.db()` | `DATABASE_URL` |
+| `isConfigured.analytics()` | `NEXT_PUBLIC_POSTHOG_KEY` |
+
+## Rules
+
+- Never throw inside `isConfigured` — boolean only
+- Use `getMissingEnvVars()` for user-facing messages — shows exact var names
+- Use `getMissingFeatures()` for internal logic — shows feature names
+- In production, adapters call `isConfigured` and throw `AppError` if false
+- In development, `SetupBanner` calls `getMissingEnvVars()` and shows a warning

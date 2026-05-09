@@ -997,7 +997,7 @@ Update this as features are completed.
 - [ ] Hono setup (optional)
 - [ ] Middleware chain (auth → ratelimit → logging)
 - [ ] Health endpoint (/api/health)
-- [ ] Error boundary architecture
+- [x] Error boundary architecture
 - [ ] Dark mode
 
 ### Feature Modules
