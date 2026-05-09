@@ -1,0 +1,52 @@
+# Logging
+
+DeployDash uses [Pino](https://getpino.io) for structured logging — the fastest Node.js logger available.
+
+## Usage
+
+```typescript
+import { logger } from "@/core/logging";
+
+// basic message
+logger.info("Server started");
+
+// with context — always prefer this
+logger.info({ userId, action: "waitlist.join" }, "User joined waitlist");
+logger.error({ err, userId }, "Payment failed");
+logger.warn({ ip, attempts }, "Rate limit approaching");
+```
+
+## Log levels
+
+| Level   | When to use                                  |
+| ------- | -------------------------------------------- |
+| `debug` | Detailed flow information, dev only          |
+| `info`  | Normal operations, key business events       |
+| `warn`  | Something unexpected but recoverable         |
+| `error` | Something failed, needs attention            |
+| `fatal` | App cannot continue, immediate action needed |
+
+## Behavior by environment
+
+| Environment | Level | Output                                 |
+| ----------- | ----- | -------------------------------------- |
+| development | debug | pino-pretty, colorized, human-readable |
+| production  | info  | raw JSON to stdout                     |
+
+## Rules
+
+- Never use `console.log`, `console.error`, or `console.warn` in production code
+- Always pass context as the first argument — `logger.info({ userId }, "message")` not `logger.info("message for " + userId)`
+- Never log secrets, passwords, tokens, or full request bodies
+- Use `logger.error({ err }, "message")` — pass the actual error object, not `err.message`
+
+## Adding context
+
+For request-scoped logging (attaching userId to every log in a request), use Pino's child logger:
+
+```typescript
+const requestLogger = logger.child({ userId, requestId });
+requestLogger.info("Processing payment");
+requestLogger.info("Payment complete");
+// both logs automatically include userId and requestId
+```

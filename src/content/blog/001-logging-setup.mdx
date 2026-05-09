@@ -1,0 +1,32 @@
+# Why I set up logging before writing a single feature
+
+When I started building DeployDash, the first thing I wired up wasn't auth or the database — it was logging. Here's why.
+
+## The problem with building features first
+
+Every feature you build will fail at some point — in development, in testing, in production. When it does, you need to know what happened. If logging isn't there from day one, you end up with `console.log` scattered everywhere as a debugging crutch, and then you have to go back and replace all of it later.
+
+I wanted to avoid that entirely.
+
+## Why Pino
+
+Pino is the fastest Node.js logger available. It's used in production by companies running millions of requests per day. For DeployDash the performance matters less than the structured output — every log is a JSON object, not a plain string. That means in production, your log drain (Vercel, Axiom, Datadog) can index and search every field.
+
+```typescript
+// this is searchable by userId, action, module
+logger.info(
+  { userId, action: "waitlist.join", module: "waitlist" },
+  "User joined waitlist",
+);
+
+// this is just a string — unsearchable
+console.log("User " + userId + " joined waitlist");
+```
+
+## The one exception to the env rule
+
+Every other file in DeployDash imports env vars through `@/core/env` — the t3-env validated schema. But the logger reads `process.env.NODE_ENV` directly. This is the one legitimate exception because the logger initializes before t3-env runs. It's documented, deliberate, and contained to one file.
+
+## What's next
+
+With logging in place, every slice from here has a proper way to report what's happening. Next up — environment variable validation with t3-env, which is the foundation every other integration depends on.
