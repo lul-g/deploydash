@@ -686,16 +686,51 @@ Some slices depend on others. Always follow this order:
 Every piece of code is test-driven. The order is strict:
 
 ```
-1. Write the test file first
-2. Run the test — confirm it FAILS (red)
-3. Paste the failing output — do not skip this
-4. Write the minimum implementation to make it pass
-5. Run the test again — confirm it PASSES (green)
-6. Paste the passing output — do not skip this
-7. Refactor if needed, tests must stay green
+1. Create the file with a skeleton — empty exports, no logic
+2. Write the test file
+3. Run the test — confirm it FAILS with a logic error (real red)
+4. Paste the failing output — do not skip this
+5. Write the minimum implementation to make it pass
+6. Run the test again — confirm it PASSES (green)
+7. Paste the passing output — do not skip this
+8. Refactor if needed, tests must stay green
 ```
 
-**Cursor must never write implementation code before the failing test exists.** If asked to implement a feature, write the test first, stop, and wait for confirmation that the red output has been seen before proceeding to implementation.
+### What counts as real red vs fake red
+
+**Fake red — do not accept this:**
+
+```
+Error: Failed to resolve import "@/core/auth/roles"
+Tests: no tests
+```
+
+This means the file does not exist. The test never ran. This is not a red test.
+
+**Real red — this is what we want:**
+
+```
+FAIL core/auth/roles > hasRole returns false for undefined
+AssertionError: expected true to be false
+Tests: 1 failed, 4 passed
+```
+
+The file exists, the test ran, the logic failed. This is a real red.
+
+**Always create the skeleton file first:**
+
+```typescript
+// skeleton — just enough to resolve imports, no real logic
+export const ROLES = {} as const
+export type Role = never
+export function hasRole() {
+  return false
+}
+```
+
+Then write the test, get real red, then write the real implementation.
+
+**Cursor must never write implementation code before the failing test exists and real red output has been confirmed.**
 
 ### Documentation discipline
 
@@ -991,7 +1026,7 @@ Update this as features are completed.
 - [ ] Email adapter — Resend
 - [ ] Billing adapter — Stripe
 - [ ] Analytics adapter — PostHog
-- [x] Logging — Pino
+- [ ] Logging — Pino
 - [ ] Rate limiting — Upstash
 - [ ] Permissions — RBAC (admin, user)
 - [ ] Hono setup (optional)
@@ -1015,9 +1050,9 @@ Update this as features are completed.
 
 ### Quality
 
-- [ ] ESLint configured
-- [ ] Prettier configured
-- [ ] Vitest configured
+- [x] ESLint configured
+- [x] Prettier configured
+- [x] Vitest configured
 - [ ] Unit tests — core adapters
 - [ ] Integration tests — API routes
 - [ ] E2E tests — critical flows

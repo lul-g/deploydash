@@ -1,0 +1,70 @@
+# Building auth that doesn't lock you in
+
+Most boilerplates hardcode their auth provider. Clerk imports are
+scattered across 30 files. Switching to Better Auth six months later
+means a week of find-and-replace.
+
+DeployDash solves this with an adapter pattern.
+
+## The adapter pattern for auth
+
+One interface defines the contract:
+
+```typescript
+interface AuthAdapter {
+  getUser(): Promise<User | null>
+  requireAuth(): Promise<User>
+  getSession(): Promise<Session | null>
+  getUserId(): Promise<string | null>
+  hasRole(role: string): Promise<boolean>
+}
+```
+
+Clerk implements it. The rest of the app imports from `@/core/auth`
+— never from `@clerk/nextjs` directly. Swapping providers means
+replacing one file.
+
+## Your own User type
+
+Clerk has their own `User` type. We don't use it outside the adapter.
+Instead we map it to our own:
+
+```typescript
+function mapClerkUser(clerkUser): User {
+  return {
+    id: clerkUser.id,
+    email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+    role: clerkUser.publicMetadata?.role as string | undefined,
+    // ...
+  }
+}
+```
+
+If Clerk changes their API, we update `mapClerkUser`. Zero other
+changes. That's the point.
+
+## Config-driven middleware
+
+Users define public and admin routes in one file:
+
+```typescript
+// src/config/routes.ts — the only file users touch
+export const routeConfig = {
+  publicRoutes: ["/", "/pricing", "/blog(.*)"],
+  adminRoutes: ["/admin(.*)"],
+}
+```
+
+The middleware reads this and enforces it automatically. Users never
+touch middleware logic — just route lists.
+
+## Graceful degradation
+
+If Clerk isn't configured, the middleware lets everything through
+instead of crashing. You can build and test your marketing pages
+before ever setting up auth. Features unlock as you configure them.
+
+## What's next
+
+Auth is the foundation everything else stands on. Next — database
+setup with Supabase and Prisma.

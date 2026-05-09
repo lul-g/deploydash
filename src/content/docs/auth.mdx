@@ -1,0 +1,93 @@
+# Authentication
+
+DeployDash uses [Clerk](https://clerk.com) as the default auth provider,
+wrapped in an adapter pattern so you can swap providers without touching
+your app code.
+
+## How it works
+
+Auth is split into three layers:
+src/config/routes.ts        ← YOU edit this
+src/core/auth/middleware.ts ← hands off
+src/middleware.ts           ← hands off
+You only ever touch `src/config/routes.ts`.
+
+## Protecting routes
+
+By default everything requires auth except what's in `publicRoutes`.
+Edit `src/config/routes.ts`:
+
+```typescript
+export const routeConfig = {
+  publicRoutes: [
+    "/",
+    "/pricing",
+    "/blog(.*)",   // wildcard — matches /blog, /blog/post-1, etc.
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+  ],
+  adminRoutes: [
+    "/admin(.*)", // requires admin role
+  ],
+  signInUrl: "/sign-in",
+  afterSignInUrl: "/dashboard",
+  afterSignUpUrl: "/onboarding",
+}
+```
+
+## Using auth in server components
+
+```typescript
+import { auth } from "@/core/auth"
+
+// get user or null — safe on public pages
+const user = await auth.getUser()
+
+// get user or throw — use on protected pages
+const user = await auth.requireAuth()
+
+// get just the ID — lightweight
+const userId = await auth.getUserId()
+
+// check role
+const isAdmin = await auth.hasRole("admin")
+```
+
+## Roles
+
+Two roles ship by default: `admin` and `user`.
+
+```typescript
+import { ROLES, hasRole } from "@/core/auth"
+
+hasRole(userRole, ROLES.ADMIN) // true/false
+hasRole(userRole, ROLES.USER)
+```
+
+Roles are stored in Clerk's `publicMetadata.role` field.
+Assign roles via the Clerk dashboard or the admin module.
+
+## Graceful degradation
+
+If `CLERK_SECRET_KEY` is missing, the middleware allows all requests
+through instead of crashing. Public pages always work. Protected pages
+return a clear error message pointing to the missing env var.
+
+## Adding a custom auth provider
+
+```bash
+npx deploydash add provider --type=auth --name=my-custom-auth
+```
+
+This generates a typed stub at:
+`src/core/auth/providers/my-custom-auth/index.ts`
+
+Implement every method on `AuthAdapter` (see `src/core/auth/types.ts`),
+then update `src/core/auth/index.ts` to export your provider.
+
+## Env vars required
+
+```bash
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+```

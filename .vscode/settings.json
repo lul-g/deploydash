@@ -1,0 +1,8 @@
+{
+    "typescript.tsserver.watchOptions": {
+      "watchFile": "useFsEventsOnParentDirectoryWithFallbackDynamicPolling",
+      "watchDirectory": "useFsEvents",
+      "fallbackPolling": "dynamicPriority"
+    },
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false
+  }
