@@ -1,0 +1,58 @@
+# Error Handling
+
+DeployDash uses typed error classes so every error has a known shape, 
+a machine-readable code, and optional context. No more stringly-typed 
+error messages.
+
+## Usage
+
+```typescript
+import { AppError, isAppError, toAppError } from "@/lib/errors"
+
+// throwing
+throw new AppError("NOT_FOUND", "User not found", { userId })
+throw new AppError("PAYMENT_FAILED", "Stripe charge failed", { stripeCode })
+
+// catching
+try {
+  await processPayment()
+} catch (error) {
+  if (isAppError(error)) {
+    logger.error({ code: error.code, context: error.context }, error.message)
+    return { error: error.code }
+  }
+  // unknown error — convert it
+  const appError = toAppError(error)
+  logger.error({ code: appError.code }, appError.message)
+}
+```
+
+## Error codes
+
+| Code | When to use |
+|---|---|
+| `NOT_FOUND` | Resource doesn't exist |
+| `UNAUTHORIZED` | No valid session |
+| `FORBIDDEN` | Authenticated but not allowed |
+| `BAD_REQUEST` | Invalid input |
+| `CONFLICT` | Resource already exists |
+| `PAYMENT_FAILED` | Stripe charge failed |
+| `RATE_LIMITED` | Too many requests |
+| `INTERNAL_ERROR` | Unexpected server error |
+| `VALIDATION_ERROR` | Zod schema validation failed |
+| `WEBHOOK_ERROR` | Webhook signature invalid |
+
+## Adding new error codes
+
+Add to the `ErrorCode` type in `src/lib/errors.ts`:
+
+```typescript
+export type ErrorCode =
+  | "NOT_FOUND"
+  | "MY_NEW_CODE"  // add here
+```
+
+## Utilities
+
+- `isAppError(error)` — type guard, returns true if error is an AppError
+- `toAppError(error)` — converts any unknown error into an AppError safely

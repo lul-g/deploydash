@@ -1,0 +1,55 @@
+# Typed errors before anything else
+
+Before writing a single feature, I set up typed error classes. Here's why.
+
+## The problem with untyped errors
+
+Most codebases throw errors like this:
+
+```typescript
+throw new Error("User not found")
+throw new Error("Payment failed")
+throw new Error("Not allowed")
+```
+
+These are useless in production. You can't programmatically handle them, 
+you can't search logs by error type, and you can't tell the difference 
+between a 404 and a 500 from the error alone.
+
+## The fix — typed error codes
+
+Every error in DeployDash has a machine-readable code:
+
+```typescript
+throw new AppError("NOT_FOUND", "User not found", { userId })
+```
+
+Now in your route handler you can do this:
+
+```typescript
+catch (error) {
+  if (isAppError(error)) {
+    if (error.code === "NOT_FOUND") return new Response("Not found", { status: 404 })
+    if (error.code === "UNAUTHORIZED") return new Response("Unauthorized", { status: 401 })
+  }
+}
+```
+
+Clean, readable, no string matching.
+
+## The prototype chain fix
+
+One thing worth noting — when you extend built-in classes like Error in 
+TypeScript, the prototype chain breaks. `instanceof AppError` returns false 
+without this fix:
+
+```typescript
+Object.setPrototypeOf(this, AppError.prototype)
+```
+
+One line, easy to forget, breaks everything if you do.
+
+## What's next
+
+With logging, env validation, and error handling in place — the invisible 
+foundation is done. Every slice from here builds on these three. Next up — auth.
