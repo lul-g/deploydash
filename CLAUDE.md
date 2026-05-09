@@ -294,12 +294,12 @@ The rest of the app only ever imports from `@/core/auth` — never from `@/core/
 `src/app/api/[[...route]]/route.ts` must contain nothing but:
 
 ```typescript
-import { app } from "@/server";
-export const GET = app.fetch;
-export const POST = app.fetch;
-export const PUT = app.fetch;
-export const PATCH = app.fetch;
-export const DELETE = app.fetch;
+import { app } from "@/server"
+export const GET = app.fetch
+export const POST = app.fetch
+export const PUT = app.fetch
+export const PATCH = app.fetch
+export const DELETE = app.fetch
 ```
 
 All logic lives in `src/server/routes/`. Route files export a Hono router. The main `src/server/index.ts` composes them. Middleware (auth, rate limiting, logging) is applied in `src/server/index.ts` globally.
@@ -320,11 +320,11 @@ All environment variables are defined in `src/core/env/index.ts` using t3-env. N
 
 ```typescript
 // correct
-import { env } from "@/core/env";
-const secret = env.CLERK_SECRET_KEY;
+import { env } from "@/core/env"
+const secret = env.CLERK_SECRET_KEY
 
 // forbidden
-const secret = process.env.CLERK_SECRET_KEY;
+const secret = process.env.CLERK_SECRET_KEY
 ```
 
 ### Logging
@@ -332,9 +332,9 @@ const secret = process.env.CLERK_SECRET_KEY;
 Never use `console.log`, `console.error`, or `console.warn` in production code. Import the logger from `@/core/logging` and use structured logging:
 
 ```typescript
-import { logger } from "@/core/logging";
-logger.info({ userId, action: "waitlist.join" }, "User joined waitlist");
-logger.error({ err, userId }, "Failed to process payment");
+import { logger } from "@/core/logging"
+logger.info({ userId, action: "waitlist.join" }, "User joined waitlist")
+logger.error({ err, userId }, "Failed to process payment")
 ```
 
 ### Error handling
@@ -342,7 +342,7 @@ logger.error({ err, userId }, "Failed to process payment");
 Typed error classes live in `src/lib/errors.ts`. Throw typed errors, catch them at the route/action level, and return appropriate responses. Never swallow errors silently.
 
 ```typescript
-throw new AppError("PAYMENT_FAILED", "Stripe charge failed", { stripeCode });
+throw new AppError("PAYMENT_FAILED", "Stripe charge failed", { stripeCode })
 ```
 
 Every module's entry point (page or layout) must be wrapped in an error boundary.
@@ -386,7 +386,7 @@ Enforced by the HSTS header in `next.config.ts`. Never allow HTTP in production.
 Verify who is making the request before doing anything else. Use the auth adapter — never Clerk directly.
 
 ```typescript
-const user = await auth.requireAuth();
+const user = await auth.requireAuth()
 // throws UnauthorizedError if no valid session — never continues past this line
 ```
 
@@ -397,25 +397,25 @@ Verify the authenticated user is allowed to perform this specific action. Never 
 ```typescript
 // role check
 if (!hasRole(user, "admin")) {
-  return new Response("Forbidden", { status: 403 });
+  return new Response("Forbidden", { status: 403 })
 }
 
 // ownership check — always scope queries to the current user
 const order = await db.order.findUnique({
   where: { id: orderId, userId: user.id }, // userId scoping is mandatory
-});
-if (!order) return new Response("Not found", { status: 404 });
+})
+if (!order) return new Response("Not found", { status: 404 })
 ```
 
 Never fetch all records and filter client-side:
 
 ```typescript
 // FORBIDDEN — fetches everything, filters after
-const orders = await db.order.findMany();
-return orders.filter((o) => o.userId === user.id);
+const orders = await db.order.findMany()
+return orders.filter((o) => o.userId === user.id)
 
 // CORRECT — database only returns this user's records
-const orders = await db.order.findMany({ where: { userId: user.id } });
+const orders = await db.order.findMany({ where: { userId: user.id } })
 ```
 
 ### Layer 4 — Rate limiting (before any business logic)
@@ -423,16 +423,16 @@ const orders = await db.order.findMany({ where: { userId: user.id } });
 Apply before touching the database or any external service. Different endpoints get different limits.
 
 ```typescript
-import { ratelimit } from "@/core/ratelimit";
+import { ratelimit } from "@/core/ratelimit"
 
 const identifier =
-  user?.id ?? request.headers.get("x-forwarded-for") ?? "anonymous";
-const { success, reset } = await ratelimit.limit(identifier);
+  user?.id ?? request.headers.get("x-forwarded-for") ?? "anonymous"
+const { success, reset } = await ratelimit.limit(identifier)
 if (!success) {
   return new Response("Too many requests", {
     status: 429,
     headers: { "Retry-After": String(reset) },
-  });
+  })
 }
 ```
 
@@ -451,25 +451,25 @@ Parse and validate every input before use. Every request body, every URL param, 
 const bodySchema = z.object({
   email: z.string().email().toLowerCase().trim(),
   plan: z.enum(["free", "pro", "enterprise"]),
-});
+})
 
-const result = bodySchema.safeParse(await request.json());
+const result = bodySchema.safeParse(await request.json())
 if (!result.success) {
   return new Response(
     JSON.stringify({ error: "Invalid input", issues: result.error.issues }),
-    { status: 400, headers: { "Content-Type": "application/json" } },
-  );
+    { status: 400, headers: { "Content-Type": "application/json" } }
+  )
 }
 
 // only safe to use after parsing
-const { email, plan } = result.data;
+const { email, plan } = result.data
 ```
 
 Use Zod transforms for sanitization — trim strings, normalize emails, strip HTML:
 
 ```typescript
-email: z.string().email().toLowerCase().trim();
-name: z.string().trim().max(100);
+email: z.string().email().toLowerCase().trim()
+name: z.string().trim().max(100)
 ```
 
 ### Layer 6 — CSRF protection
@@ -482,20 +482,20 @@ Every incoming webhook must have its signature verified before processing. Never
 
 ```typescript
 // Stripe — always verify before processing
-const signature = request.headers.get("stripe-signature");
-if (!signature) return new Response("Missing signature", { status: 400 });
+const signature = request.headers.get("stripe-signature")
+if (!signature) return new Response("Missing signature", { status: 400 })
 
-let event: Stripe.Event;
+let event: Stripe.Event
 try {
   // raw body is mandatory — never use parsed JSON here
-  const rawBody = await request.text();
+  const rawBody = await request.text()
   event = stripe.webhooks.constructEvent(
     rawBody,
     signature,
-    env.STRIPE_WEBHOOK_SECRET,
-  );
+    env.STRIPE_WEBHOOK_SECRET
+  )
 } catch {
-  return new Response("Invalid signature", { status: 400 });
+  return new Response("Invalid signature", { status: 400 })
 }
 
 // only now is it safe to process the event
@@ -509,11 +509,11 @@ Prisma parameterizes all queries by default. You get this for free. The one rule
 
 ```typescript
 // SAFE — Prisma parameterizes automatically
-await db.user.findUnique({ where: { email } });
+await db.user.findUnique({ where: { email } })
 
 // DANGEROUS — string interpolation in raw query
-await db.$queryRaw`SELECT * FROM users WHERE email = ${email}`; // still safe with tagged template
-await db.$queryRaw(`SELECT * FROM users WHERE email = '${email}'`); // NEVER do this
+await db.$queryRaw`SELECT * FROM users WHERE email = ${email}` // still safe with tagged template
+await db.$queryRaw(`SELECT * FROM users WHERE email = '${email}'`) // NEVER do this
 ```
 
 If you need raw queries, use Prisma's tagged template literal `Prisma.sql` which parameterizes safely.
@@ -524,7 +524,7 @@ Never return a database record directly. Always map to an explicit response type
 
 ```typescript
 // FORBIDDEN — exposes passwordHash, internal flags, stripe customer id, etc.
-return Response.json(user);
+return Response.json(user)
 
 // CORRECT — explicit response shape
 return Response.json({
@@ -532,7 +532,7 @@ return Response.json({
   email: user.email,
   name: user.name,
   plan: user.plan,
-});
+})
 ```
 
 Define response types explicitly in `src/types/` and use them consistently.
@@ -546,27 +546,26 @@ Every route handler in DeployDash follows this exact structure. No exceptions.
 ```typescript
 export async function POST(request: Request) {
   // Layer 2 — authentication
-  const user = await auth.requireAuth();
+  const user = await auth.requireAuth()
 
   // Layer 4 — rate limiting
-  const { success } = await ratelimit.limit(user.id);
-  if (!success) return new Response("Too many requests", { status: 429 });
+  const { success } = await ratelimit.limit(user.id)
+  if (!success) return new Response("Too many requests", { status: 429 })
 
   // Layer 5 — input validation
-  const result = mySchema.safeParse(await request.json());
-  if (!result.success) return new Response("Invalid input", { status: 400 });
+  const result = mySchema.safeParse(await request.json())
+  if (!result.success) return new Response("Invalid input", { status: 400 })
 
   // Layer 3 — authorization (when needed)
-  if (!hasRole(user, "admin"))
-    return new Response("Forbidden", { status: 403 });
+  if (!hasRole(user, "admin")) return new Response("Forbidden", { status: 403 })
 
   // Layer 8 — Prisma handles SQL injection, Layer 3 — scope to user
   const record = await db.myTable.create({
     data: { ...result.data, userId: user.id },
-  });
+  })
 
   // Layer 9 — return only what's needed
-  return Response.json({ id: record.id });
+  return Response.json({ id: record.id })
 }
 ```
 
@@ -795,19 +794,19 @@ describe("waitlist.join", () => {
 
 ```typescript
 // correct
-if (!user) return { error: "Unauthorized" };
-if (!user.hasRole("admin")) return { error: "Forbidden" };
-return { data: await getAdminData() };
+if (!user) return { error: "Unauthorized" }
+if (!user.hasRole("admin")) return { error: "Forbidden" }
+return { data: await getAdminData() }
 
 // forbidden
 if (user) {
   if (user.hasRole("admin")) {
-    return { data: await getAdminData() };
+    return { data: await getAdminData() }
   } else {
-    return { error: "Forbidden" };
+    return { error: "Forbidden" }
   }
 } else {
-  return { error: "Unauthorized" };
+  return { error: "Unauthorized" }
 }
 ```
 

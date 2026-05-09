@@ -40,14 +40,14 @@ Write the test first. It must fail. A test that passes immediately proves nothin
 // RED: This test fails because createTask doesn't exist yet
 describe("TaskService", () => {
   it("creates a task with title and default status", async () => {
-    const task = await taskService.createTask({ title: "Buy groceries" });
+    const task = await taskService.createTask({ title: "Buy groceries" })
 
-    expect(task.id).toBeDefined();
-    expect(task.title).toBe("Buy groceries");
-    expect(task.status).toBe("pending");
-    expect(task.createdAt).toBeInstanceOf(Date);
-  });
-});
+    expect(task.id).toBeDefined()
+    expect(task.title).toBe("Buy groceries")
+    expect(task.status).toBe("pending")
+    expect(task.createdAt).toBeInstanceOf(Date)
+  })
+})
 ```
 
 ### Step 2: GREEN — Make It Pass
@@ -62,9 +62,9 @@ export async function createTask(input: { title: string }): Promise<Task> {
     title: input.title,
     status: "pending" as const,
     createdAt: new Date(),
-  };
-  await db.tasks.insert(task);
-  return task;
+  }
+  await db.tasks.insert(task)
+  return task
 }
 ```
 
@@ -109,19 +109,19 @@ Bug report arrives
 
 // Step 1: Write the reproduction test (it should FAIL)
 it("sets completedAt when task is completed", async () => {
-  const task = await taskService.createTask({ title: "Test" });
-  const completed = await taskService.completeTask(task.id);
+  const task = await taskService.createTask({ title: "Test" })
+  const completed = await taskService.completeTask(task.id)
 
-  expect(completed.status).toBe("completed");
-  expect(completed.completedAt).toBeInstanceOf(Date); // This fails → bug confirmed
-});
+  expect(completed.status).toBe("completed")
+  expect(completed.completedAt).toBeInstanceOf(Date) // This fails → bug confirmed
+})
 
 // Step 2: Fix the bug
 export async function completeTask(id: string): Promise<Task> {
   return db.tasks.update(id, {
     status: "completed",
     completedAt: new Date(), // This was missing
-  });
+  })
 }
 
 // Step 3: Test passes → bug fixed, regression guarded
@@ -180,19 +180,19 @@ Assert on the _outcome_ of an operation, not on which methods were called intern
 ```typescript
 // Good: Tests what the function does (state-based)
 it("returns tasks sorted by creation date, newest first", async () => {
-  const tasks = await listTasks({ sortBy: "createdAt", sortOrder: "desc" });
+  const tasks = await listTasks({ sortBy: "createdAt", sortOrder: "desc" })
   expect(tasks[0].createdAt.getTime()).toBeGreaterThan(
-    tasks[1].createdAt.getTime(),
-  );
-});
+    tasks[1].createdAt.getTime()
+  )
+})
 
 // Bad: Tests how the function works internally (interaction-based)
 it("calls db.query with ORDER BY created_at DESC", async () => {
-  await listTasks({ sortBy: "createdAt", sortOrder: "desc" });
+  await listTasks({ sortBy: "createdAt", sortOrder: "desc" })
   expect(db.query).toHaveBeenCalledWith(
-    expect.stringContaining("ORDER BY created_at DESC"),
-  );
-});
+    expect.stringContaining("ORDER BY created_at DESC")
+  )
+})
 ```
 
 ### DAMP Over DRY in Tests
@@ -202,15 +202,15 @@ In production code, DRY (Don't Repeat Yourself) is usually right. In tests, **DA
 ```typescript
 // DAMP: Each test is self-contained and readable
 it("rejects tasks with empty titles", () => {
-  const input = { title: "", assignee: "user-1" };
-  expect(() => createTask(input)).toThrow("Title is required");
-});
+  const input = { title: "", assignee: "user-1" }
+  expect(() => createTask(input)).toThrow("Title is required")
+})
 
 it("trims whitespace from titles", () => {
-  const input = { title: "  Buy groceries  ", assignee: "user-1" };
-  const task = createTask(input);
-  expect(task.title).toBe("Buy groceries");
-});
+  const input = { title: "  Buy groceries  ", assignee: "user-1" }
+  const task = createTask(input)
+  expect(task.title).toBe("Buy groceries")
+})
 
 // Over-DRY: Shared setup obscures what each test actually verifies
 // (Don't do this just to avoid repeating the input shape)
@@ -240,14 +240,14 @@ it("marks overdue tasks when deadline has passed", () => {
   const task = createTask({
     title: "Test",
     deadline: new Date("2025-01-01"),
-  });
+  })
 
   // Act: Perform the action being tested
-  const result = checkOverdue(task, new Date("2025-01-02"));
+  const result = checkOverdue(task, new Date("2025-01-02"))
 
   // Assert: Verify the outcome
-  expect(result.isOverdue).toBe(true);
-});
+  expect(result.isOverdue).toBe(true)
+})
 ```
 
 ### One Assertion Per Concept

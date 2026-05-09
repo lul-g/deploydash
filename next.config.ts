@@ -1,5 +1,5 @@
-import "./src/env.ts";
-import type { NextConfig } from "next";
+import "./src/env.ts"
+import type { NextConfig } from "next"
 
 const securityHeaders = [
   {
@@ -26,7 +26,7 @@ const securityHeaders = [
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
-];
+]
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -35,8 +35,8 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
-    ];
+    ]
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
