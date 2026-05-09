@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
+    env: {
+      SKIP_ENV_VALIDATION: "true",
+    },
   },
   resolve: {
     alias: {

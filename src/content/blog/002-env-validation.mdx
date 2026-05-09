@@ -1,0 +1,34 @@
+# Why I validate environment variables at build time
+
+Most apps access environment variables like this:
+
+```typescript
+const key = process.env.STRIPE_SECRET_KEY;
+```
+
+The problem — if `STRIPE_SECRET_KEY` is missing, this returns `undefined`.
+Your app starts fine, but the first time a user tries to pay, it crashes.
+In production. With no useful error message.
+
+## The fix — crash at build time, not runtime
+
+With t3-env, a missing variable kills the build immediately:
+You find out before deployment, not after a user files a bug report.
+
+## The jsdom problem
+
+One thing that tripped me up — t3-env's Next.js adapter detects browser-like
+environments and blocks server variable access. Vitest runs in jsdom which
+looks like a browser, so tests were failing with "Attempted to access a
+server-side environment variable on the client."
+
+The fix was three-pronged:
+
+- Set `SKIP_ENV_VALIDATION=true` in vitest config
+- Check `typeof window !== "undefined"` in skipValidation
+- Restructure tests to not access server vars directly in jsdom
+
+## What's next
+
+With env validation in place, every integration from here has a safe,
+typed way to access its secrets. Next up — typed error classes.
