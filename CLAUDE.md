@@ -1021,16 +1021,16 @@ Update this as features are completed.
 - [x] Environment validation (t3-env + Zod)
 - [x] Folder structure finalized
 - [ ] Adapter interfaces defined (core/\*/types.ts)
-- [ ] Auth adapter — Clerk
+- [x] Auth adapter — Clerk
 - [ ] DB adapter — Supabase + Prisma
 - [ ] Email adapter — Resend
 - [ ] Billing adapter — Stripe
 - [ ] Analytics adapter — PostHog
 - [ ] Logging — Pino
 - [ ] Rate limiting — Upstash
-- [ ] Permissions — RBAC (admin, user)
+- [x] Permissions — RBAC (admin, user)
 - [ ] Hono setup (optional)
-- [ ] Middleware chain (auth → ratelimit → logging)
+- [x] Middleware chain (auth → ratelimit → logging)
 - [ ] Health endpoint (/api/health)
 - [x] Error boundary architecture
 - [ ] Dark mode
