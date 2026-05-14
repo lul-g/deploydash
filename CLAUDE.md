@@ -1246,21 +1246,21 @@ Update this as features are completed.
 - [x] Security headers (next.config.ts)
 - [x] Environment validation (t3-env + Zod)
 - [x] Folder structure finalized
-- [ ] Adapter interfaces defined (core/\*/types.ts)
 - [x] Auth adapter — Clerk
+- [x] Permissions — RBAC (admin, user)
 - [x] DB adapter — Supabase + Prisma
 - [ ] Email adapter — Resend
 - [ ] Billing adapter — Stripe
 - [ ] Analytics adapter — PostHog
+- [x] Rate limiting — Upstash
 - [x] Logging — Pino
-- [ ] Rate limiting — Upstash
-- [x] Permissions — RBAC (admin, user)
-- [ ] Hono setup (optional)
-- [x] Middleware chain (auth → ratelimit → logging)
-- [ ] Health endpoint (/api/health)
+- [x] Health endpoint (/api/health)
 - [ ] Monitoring module (health endpoint + status page)
-- [x] Error boundary architecture
+- [ ] Middleware chain (auth → ratelimit → logging)
+- [ ] Hono setup (optional)
 - [ ] Dark mode
+- [ ] Adapter interfaces defined (core/\*/types.ts)
+- [x] Error boundary architecture
 
 ### Feature Modules
 
@@ -1280,7 +1280,7 @@ Update this as features are completed.
 - [x] ESLint configured
 - [x] Prettier configured
 - [x] Vitest configured
-- [ ] Unit tests — core adapters
+- [x] Unit tests — core adapters
 - [ ] Integration tests — API routes
 - [ ] E2E tests — critical flows
 
