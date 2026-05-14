@@ -1248,7 +1248,7 @@ Update this as features are completed.
 - [x] Folder structure finalized
 - [ ] Adapter interfaces defined (core/\*/types.ts)
 - [x] Auth adapter — Clerk
-- [ ] DB adapter — Supabase + Prisma
+- [x] DB adapter — Supabase + Prisma
 - [ ] Email adapter — Resend
 - [ ] Billing adapter — Stripe
 - [ ] Analytics adapter — PostHog

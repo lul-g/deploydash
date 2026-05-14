@@ -42,6 +42,13 @@ export const isConfigured = {
    * Required for: analytics, user tracking.
    */
   analytics: (): boolean => !!env.NEXT_PUBLIC_POSTHOG_KEY,
+
+  /**
+   * Returns true if Upstash Redis URL and token are present.
+   * Required for: rate limiting.
+   */
+  ratelimit: (): boolean =>
+    !!env.UPSTASH_REDIS_REST_URL && !!env.UPSTASH_REDIS_REST_TOKEN,
 }
 
 /**

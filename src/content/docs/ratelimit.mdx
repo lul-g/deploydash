@@ -1,0 +1,58 @@
+# Rate Limiting
+
+DeployDash uses Upstash Redis for rate limiting via a sliding window
+algorithm. Every public endpoint is protected by default.
+
+## Usage
+
+```typescript
+import { ratelimit, RATE_LIMIT_TIERS } from "@/core/ratelimit"
+
+// default tier (api — 60 req/min)
+const { success, remaining, reset } = await ratelimit.limit(identifier)
+if (!success) {
+  return new Response("Too many requests", {
+    status: 429,
+    headers: { "Retry-After": String(reset) },
+  })
+}
+
+// specific tier
+const { success } = await RATE_LIMIT_TIERS.auth.limit(identifier)
+```
+
+## Tiers
+
+| Tier | Limit | Use for |
+|---|---|---|
+| `auth` | 5 req/min | Sign in, sign up, forgot password |
+| `mutation` | 30 req/min | Create, update, delete routes |
+| `api` | 60 req/min | General API routes |
+
+## Identifier
+
+Always use the most specific identifier available:
+
+```typescript
+// authenticated routes — use user ID
+const identifier = user.id
+
+// public routes — use IP address
+const identifier = request.headers.get("x-forwarded-for") ?? "anonymous"
+
+// auth routes — use email to prevent enumeration
+const identifier = `auth:${email}`
+```
+
+## Graceful degradation
+
+If Upstash is not configured, the null adapter is used.
+All requests return `success: true` — no limiting applied.
+Safe for development without Redis configured.
+
+## Env vars required
+
+```bash
+UPSTASH_REDIS_REST_URL=https://your-url.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token_here
+```

@@ -1,0 +1,35 @@
+# Rate limiting before the first public route
+
+Most developers add rate limiting after they get hit with abuse.
+I added it before writing a single API route.
+
+## Why upfront
+
+Rate limiting is one of those things that's trivial to add at the
+start and painful to retrofit later. Every route needs it. If you
+build 20 routes without it and then add it, you're touching 20 files.
+Build it once as infrastructure, reference it everywhere.
+
+## Why Upstash
+
+Upstash is serverless Redis — no persistent connection needed. Each
+request uses a REST call to check and increment the counter. That
+works perfectly with Next.js serverless functions which can't maintain
+persistent connections.
+
+## Three tiers
+
+Not all endpoints are equal. A sign-in route is a brute force target
+— it gets 5 requests per minute. A general API read gets 60. The tier
+system means we can apply the right limit at the right place without
+thinking about it each time.
+
+## The null adapter
+
+In development without Upstash configured, the null adapter returns
+`success: true` for everything. No Redis needed to develop locally.
+The real limiter only kicks in when credentials are present.
+
+## What's next
+
+Rate limiting is in place. Next — email with Resend.
