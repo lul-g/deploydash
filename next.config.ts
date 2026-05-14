@@ -1,4 +1,4 @@
-import "./src/env.ts"
+import "./src/core/env/index.ts"
 import type { NextConfig } from "next"
 
 const securityHeaders = [
