@@ -1252,7 +1252,7 @@ Update this as features are completed.
 - [ ] Email adapter — Resend
 - [ ] Billing adapter — Stripe
 - [ ] Analytics adapter — PostHog
-- [ ] Logging — Pino
+- [x] Logging — Pino
 - [ ] Rate limiting — Upstash
 - [x] Permissions — RBAC (admin, user)
 - [ ] Hono setup (optional)

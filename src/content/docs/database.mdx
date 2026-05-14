@@ -1,0 +1,90 @@
+# Database
+
+DeployDash uses Supabase (PostgreSQL) with Prisma as the ORM, wrapped
+in a repository pattern so the rest of the app never touches Prisma directly.
+
+## Usage
+
+```typescript
+import { db } from "@/core/db"
+
+// find a user
+const user = await db.user.findById(userId)
+const user = await db.user.findByEmail(email)
+
+// create a user (called on Clerk webhook — signup)
+const user = await db.user.create({
+  id: clerkUserId,
+  email: userEmail,
+  role: "user",
+})
+
+// update a user
+const user = await db.user.update(userId, { role: "admin" })
+
+// query with filters
+const admins = await db.user.findMany({
+  where: { role: "admin" },
+  orderBy: { field: "createdAt", direction: "desc" },
+  limit: 10,
+  offset: 0,
+})
+
+// count
+const total = await db.user.count()
+const adminCount = await db.user.count({ role: "admin" })
+
+// delete
+await db.user.delete(userId)
+```
+
+## Architecture
+app code → db.user.findById()
+→ UserRepository
+→ Prisma query
+→ Supabase PostgreSQL
+The app never imports from `@prisma/client` or `@/generated/prisma` directly.
+Everything goes through `@/core/db`.
+
+## Adding a new model
+
+1. Add the model to `prisma/schema.prisma`
+2. Run `pnpm prisma migrate dev --name add-[model-name]`
+3. Run `pnpm prisma generate`
+4. Add the repository interface to `src/core/db/types.ts`
+5. Implement the repository in `src/core/db/providers/supabase-prisma/index.ts`
+6. Add a no-op to `src/core/db/providers/null/index.ts`
+7. Export from `src/core/db/index.ts`
+8. Add RLS policies in Supabase SQL Editor
+
+## RLS policies
+
+Every table has Row Level Security enabled. The service role policy
+allows all server-side operations. Direct client access is blocked.
+
+```sql
+CREATE POLICY "table_service_role_all" ON "table_name"
+FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+```
+
+## Env vars required
+
+```bash
+DATABASE_URL=postgresql://...@db.[ref].supabase.co:5432/postgres
+DATABASE_URL_UNPOOLED=postgresql://...@pooler.supabase.com:6543/postgres
+```
+
+## Graceful degradation
+
+If `DATABASE_URL` is missing, the null adapter is used. Every method
+throws a clear `AppError INTERNAL_ERROR` with setup instructions
+instead of crashing with a cryptic Prisma error.
+
+## Deployment reminder
+
+Switch `DATABASE_URL` to the pooled connection before deploying to production.
+The pooled connection handles concurrent requests efficiently on Supabase's
+connection limits.

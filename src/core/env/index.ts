@@ -29,6 +29,7 @@ export const env = createEnv({
 
     // Database (optional here, required in generated projects that use db)
     DATABASE_URL: z.string().url().optional(),
+    DATABASE_URL_UNPOOLED: z.string().url().optional(),
 
     // Billing — Stripe (optional here, required in generated projects that use billing)
     STRIPE_SECRET_KEY: z.string().min(1).optional(),
@@ -52,6 +53,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,

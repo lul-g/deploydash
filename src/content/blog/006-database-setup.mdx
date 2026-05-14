@@ -1,0 +1,64 @@
+# Why I wrapped Prisma in a repository pattern
+
+The obvious way to use Prisma in a Next.js app is to import it
+directly wherever you need it:
+
+```typescript
+import { prisma } from "@/lib/prisma"
+const user = await prisma.user.findUnique({ where: { id } })
+```
+
+I didn't do that. Here's why.
+
+## The problem with direct Prisma imports
+
+When Prisma is imported directly everywhere, it becomes impossible
+to swap. Every file that imports Prisma is coupled to it. Switching
+to Drizzle means touching every data access call in the codebase.
+
+More subtly — it makes testing harder. Mocking Prisma in tests
+requires mocking the entire PrismaClient, which is complex and
+brittle. Mocking a simple repository interface is trivial.
+
+## The repository pattern
+
+Instead of `prisma.user.findUnique()` scattered everywhere, the app
+calls `db.user.findById()`. The repository translates that into a
+Prisma query internally.
+
+```typescript
+// what the app sees
+const user = await db.user.findById(userId)
+
+// what the repository does internally
+const prismaUser = await prisma.user.findUnique({ where: { id: userId } })
+return prismaUser ? mapUser(prismaUser) : null
+```
+
+The `mapUser` function is the key — it converts Prisma's output into
+DeployDash's own `User` type. If Prisma changes its API, or if we
+swap to Drizzle, we update `mapUser` and the repository. Zero changes
+anywhere else.
+
+## Prisma 7 — a breaking change worth knowing
+
+Prisma 7 dropped its built-in query engine. You now need a driver
+adapter — in our case `@prisma/adapter-pg` for PostgreSQL. The
+`PrismaClient` constructor requires either `adapter` or `accelerateUrl`.
+Constructing it with just log options is now a type error.
+
+This caught us during the build. The fix was straightforward but
+worth documenting for anyone hitting the same error.
+
+## The null adapter
+
+When `DATABASE_URL` is missing, the null adapter kicks in. Every
+method throws a clear `AppError` with instructions instead of a
+cryptic Prisma connection error. This is the graceful degradation
+pattern we use across all of DeployDash's core infrastructure.
+
+## What's next
+
+The database slice is the foundation every feature module stands on.
+Next up — the rate limiting slice with Upstash, which needs to be
+in place before any public API routes go live.

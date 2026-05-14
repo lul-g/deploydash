@@ -1,0 +1,28 @@
+// DeployDash — Prisma Schema
+//
+// Rules:
+// - Every table must have a corresponding RLS policy in Supabase
+// - Never add business logic here — schema only
+// - Run `pnpm prisma migrate dev --name [description]` after every change
+// - Run `pnpm prisma generate` to update the client after schema changes
+// - Table names are snake_case, model names are PascalCase
+// - Always add @@map() to explicitly set the table name
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id // Clerk user ID — matches Clerk's user.id
+  email     String   @unique
+  role      String   @default("user") // matches ROLES in src/core/auth/roles.ts
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
