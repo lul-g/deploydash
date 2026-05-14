@@ -1258,6 +1258,7 @@ Update this as features are completed.
 - [ ] Hono setup (optional)
 - [x] Middleware chain (auth → ratelimit → logging)
 - [ ] Health endpoint (/api/health)
+- [ ] Monitoring module (health endpoint + status page)
 - [x] Error boundary architecture
 - [ ] Dark mode
 
