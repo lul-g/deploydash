@@ -621,6 +621,19 @@ Every module in `src/modules/` must:
 4. Export a clean public API from its `index.ts`
 5. Have its own error boundary
 6. Be independently testable
+7. Declare its dependencies in a manifest at the top of `index.ts`
+
+Module dependency manifest — required on every module and adapter:
+
+/\*\*
+
+- @module billing
+- @requires auth — links payments to users. Run: npx deploydash add auth
+- @requires db — stores subscription data. Run: npx deploydash add db
+- @optional email — sends payment receipts. Run: npx deploydash add email
+- @install npx deploydash add billing
+- @env STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+  \*/
 
 Module structure:
 
@@ -773,6 +786,219 @@ content/blog/003-auth-setup.mdx
 ✓ updated CLAUDE.md tracker: [x] Logging — Pino
 → slice complete. move to next.
 ```
+
+---
+
+# The testing philosophy behind DeployDash
+
+When I started DeployDash I made a decision early: tests are not an
+afterthought. They are part of the definition of done. Every slice —
+auth, billing, waitlist, everything — is not complete until it has
+tests that would make a senior engineer at Google nod.
+
+Here's the philosophy behind how DeployDash is tested and why.
+
+## The Google standard — it's real and it's documented
+
+Google published their internal engineering standards in a book called
+"Software Engineering at Google." The testing chapter is publicly
+available and it's the closest thing the industry has to a gold
+standard for unit testing.
+
+Their principles, directly quoted:
+
+> Strive for unchanging tests. Test via public APIs. Test state, not
+> interactions. Make your tests complete and concise. Test behaviors,
+> not methods. Name tests after the behavior being tested. Don't put
+> logic in tests. Write clear failure messages. Follow DAMP over DRY.
+
+Let me break down what each of these means in practice for a Next.js
+TypeScript codebase.
+
+## Test behaviors, not methods
+
+This is the biggest mindset shift. Most developers write one test per
+function. Google says write one test per **behavior**.
+
+A single function can have many behaviors:
+
+```typescript
+// hasRole has at least 5 distinct behaviors worth testing:
+// 1. returns true when roles match
+// 2. returns false when roles don't match
+// 3. returns false for undefined (unauthenticated user)
+// 4. returns false for empty string
+// 5. is case sensitive
+// 6. never throws for any input
+```
+
+Each behavior gets its own `it()` block with a name that describes
+exactly what it does — not "hasRole test 1" but
+"returns false when user is unauthenticated."
+
+## DAMP over DRY in tests
+
+DRY (Don't Repeat Yourself) is good advice for production code.
+In tests it's the wrong instinct.
+
+DAMP — Descriptive And Meaningful Phrases — means each test is
+self-contained and readable without jumping around the file.
+
+```typescript
+// DRY — bad for tests
+const adminUser = createUser({ role: "admin" })
+
+it("allows admin", () => expect(hasRole(adminUser.role, "admin")).toBe(true))
+it("blocks user", () => expect(hasRole(adminUser.role, "user")).toBe(false))
+// adminUser is defined elsewhere — reader has to scroll to understand
+
+// DAMP — good for tests
+it("returns true when user has admin role", () => {
+  expect(hasRole("admin", "admin")).toBe(true)
+  // everything needed is right here
+})
+```
+
+## The AAA pattern — non-negotiable structure
+
+Every test in DeployDash follows Arrange, Act, Assert:
+
+```typescript
+it("returns null when auth is not configured", async () => {
+  // Arrange — set up the world
+  vi.stubEnv("CLERK_SECRET_KEY", "")
+
+  // Act — run the code
+  const user = await auth.getUser()
+
+  // Assert — verify the result
+  expect(user).toBeNull()
+})
+```
+
+When a test fails, this structure tells you immediately:
+
+- What state the world was in (Arrange)
+- What triggered the failure (Act)
+- What was expected vs what happened (Assert)
+
+## Name tests like documentation
+
+Test names are the first thing you read when a build fails in CI.
+They should tell you exactly what broke without reading the code.
+
+```typescript
+// Useless name — what broke?
+it("works correctly")
+
+// Good name — immediately actionable
+it("throws UNAUTHORIZED when session has expired")
+it("returns false when user has no role assigned in Clerk metadata")
+it("falls back to null adapter when CLERK_SECRET_KEY is missing")
+```
+
+## What we test in DeployDash
+
+Every adapter in `src/core/` — these are the most critical. If the
+auth adapter is wrong, nothing works. Full coverage, every behavior.
+
+Every utility in `src/lib/` — errors, setup detection, validators.
+These are pure functions — easy to test, no excuses for skipping.
+
+Every server action in every module — this is where business logic
+lives. A bug in `joinWaitlist()` means real users can't join your
+waitlist. Test it thoroughly.
+
+Every Zod schema — valid input, invalid input, boundary values. Zod
+schemas are your first line of defense against bad data.
+
+## What we don't test
+
+shadcn UI components — they're third-party, they're tested upstream.
+
+Pure layout components with no logic — a `DashboardShell` that just
+renders children doesn't need a test.
+
+Config files — `src/config/routes.ts` is just data. No logic, no test.
+
+## The red-green discipline
+
+Before writing any implementation, we write a failing test. Not a
+"file not found" error — a real logical failure. The skeleton file
+exists, the test runs, and it fails because the behavior isn't
+implemented yet. That's real red.
+
+Then we write the minimum code to make it pass. Then we refactor
+if needed. Tests stay green throughout.
+
+This discipline ensures tests actually test something. If you write
+tests after implementation, you tend to write tests that confirm what
+you just wrote, not tests that verify correct behavior.
+
+## The coverage checklist
+
+For every function or module, run through this checklist before
+considering tests complete:
+
+```
+happy path        → correct output with valid input
+sad path          → correct error/null with invalid input
+edge cases        → empty string, null, undefined, 0, []
+boundaries        → max length, min length, exact limits
+error messages    → throws the RIGHT error with the RIGHT message and code
+type safety       → unexpected types don't cause silent failures
+independence      → tests never depend on each other
+no side effects   → each test cleans up after itself (beforeEach/afterEach)
+```
+
+This checklist came from bitter experience. Every item on it maps to
+a real class of bug that slips through shallow tests:
+
+**Happy path only** — the most common mistake. Tests pass in ideal
+conditions, fail the moment a user does something unexpected.
+
+**Missing sad path** — what happens when `getUser()` returns null?
+When the database is down? When the webhook signature is invalid?
+These are the paths that matter most in production.
+
+**Skipping edge cases** — empty strings look like falsy values but
+behave differently than null. `undefined` and `null` are different.
+An empty array `[]` is truthy. These catch you if you don't test them.
+
+**Ignoring boundaries** — a Zod schema with `z.string().max(100)`
+should be tested at exactly 100 characters, 101 characters, and 0
+characters. Not just "some string."
+
+**Wrong error messages** — throwing the right error TYPE but with
+the wrong CODE or MESSAGE is still a bug. Test both.
+
+**Type safety gaps** — TypeScript catches most of this at compile
+time but runtime values from APIs, webhooks, and form data are
+untyped. Test that your validation handles garbage input gracefully.
+
+**Test interdependence** — if test B only passes because test A ran
+first, you have a hidden dependency. Tests must be runnable in any
+order. `vi.resetModules()` and `vi.unstubAllEnvs()` in `beforeEach`
+and `afterEach` prevents this.
+
+**Side effects** — a test that modifies a shared variable, writes
+to a file, or leaves a stubbed env var in place poisons every test
+that runs after it. Always clean up.
+
+Run this checklist mentally for every `describe` block you write.
+If any item is missing, add the test before moving on.
+
+## The result
+
+A codebase where:
+
+- Every public API is tested against its contract
+- Failure messages tell you exactly what broke
+- Tests read like documentation
+- Refactoring is safe because tests catch regressions
+- New contributors understand expected behavior from test names alone
+
+That's the standard. That's what DeployDash ships.
 
 ---
 
